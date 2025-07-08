@@ -347,5 +347,11 @@ window.addEventListener('DOMContentLoaded', () => {
   $('#sendBtn').onclick = runPanel;
   $('#importFile').addEventListener('change', importStateFile);
   $('#searchBox').addEventListener('input', showChatHistory);
+  $('#promptInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      runPanel();
+    }
+  });
   setStatus('Ready.');
 });
