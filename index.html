@@ -1,1 +1,59 @@
-<!-- -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Agent Studio – Multi-Agent Panel</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="container">
+    <aside id="sidebar">
+      <h2>Agent Studio</h2>
+      <button id="newProjectBtn">New Project</button>
+      <button id="exportBtn">Export</button>
+      <button id="importBtn">Import</button>
+      <hr>
+      <div>
+        <b>Personas:</b>
+        <div id="personasList"></div>
+      </div>
+      <hr>
+      <div class="version">v2.0 – Multi-Agent Dashboard</div>
+    </aside>
+    <main id="main">
+      <div id="topbar">
+        <label><input type="radio" name="api" value="openai" checked> OpenAI</label>
+        <label><input type="radio" name="api" value="groq"> Groq</label>
+        <label><input type="radio" name="api" value="openrouter"> OpenRouter</label>
+        <span id="activeApiDisplay" class="status">Current API: OPENAI</span>
+        <span class="panel-toggle"><input type="checkbox" id="coopMode" checked> Teamwork / Panel Chaining</span>
+        <span class="panel-toggle settings">
+          Temp:<input type="text" id="temperature" value="0.7" size="3">
+          MaxTok:<input type="text" id="maxTokens" value="1024" size="4">
+          <button id="saveSettingsBtn" class="control-btn">Save</button>
+        </span>
+      </div>
+      <div id="apiFields">
+        <label>OpenAI Key: <input type="password" id="openaiKey"></label>
+        <label>Groq Key: <input type="password" id="groqKey"></label>
+        <label>OpenRouter Key: <input type="password" id="openrouterKey"></label>
+        <button id="saveKeysBtn" class="control-btn">Save Keys</button>
+        <button id="clearKeysBtn" class="control-btn">Clear</button>
+      </div>
+      <div class="search-bar">
+        <input type="text" id="searchBox" placeholder="Search prompt/agent...">
+        <button id="clearSearchBtn" class="control-btn">Clear</button>
+      </div>
+      <div id="chatHistory"></div>
+      <div id="promptBar">
+        <textarea id="promptInput" placeholder="Type your prompt for the team..."></textarea>
+        <button id="sendBtn">Send</button>
+      </div>
+      <div id="statusBar">Ready.</div>
+    </main>
+  </div>
+  <input type="file" id="importFile" style="display:none">
+  <script src="script.js"></script>
+</body>
+</html>
