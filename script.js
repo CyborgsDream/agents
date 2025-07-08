@@ -75,11 +75,28 @@ function saveSettings() {
 }
 
 function updatePersonasList() {
-  const html = appState.personas.map(p => {
+  const html = appState.personas.map((p, i) => {
+    const id = `persona${i}`;
     const av = avatarMap[p.name] ? `<img src="${avatarMap[p.name]}" class="agent-avatar">` : '';
-    return `<div>${av}<b>${p.name}</b></div><div class="persona-desc">${p.description}</div>`;
+    return `<div class="persona-card" onclick="togglePersona('${id}')">` +
+      `<div>${av}<b>${p.name}</b><span class="persona-toggle" id="${id}_toggle">[+]</span></div>` +
+      `<div class="persona-desc hidden" id="${id}_desc">${p.description}</div>` +
+      `</div>`;
   }).join('');
   $('#personasList').innerHTML = html;
+}
+
+function togglePersona(id) {
+  const desc = $(`#${id}_desc`);
+  const toggle = $(`#${id}_toggle`);
+  if (!desc) return;
+  if (desc.classList.contains('hidden')) {
+    desc.classList.remove('hidden');
+    toggle.innerText = '[-]';
+  } else {
+    desc.classList.add('hidden');
+    toggle.innerText = '[+]';
+  }
 }
 
 function newProject() {
@@ -155,7 +172,6 @@ function showChatHistory() {
     </div>`;
   }).reverse().join('');
   $('#chatHistory').innerHTML = html || '<em>No history yet.</em>';
-  if (history.length) toggleRound('round0', true);
 }
 
 function toggleRound(id, expand) {
