@@ -78,8 +78,11 @@ function updatePersonasList() {
   const html = appState.personas.map((p, i) => {
     const id = `persona${i}`;
     const av = avatarMap[p.name] ? `<img src="${avatarMap[p.name]}" class="agent-avatar">` : '';
-    return `<div class="persona-card" onclick="togglePersona('${id}')">` +
-      `<div>${av}<b>${p.name}</b><span class="persona-toggle" id="${id}_toggle">[+]</span></div>` +
+    return `<div class="persona-card">` +
+      `<div class="persona-header" onclick="togglePersona('${id}')">` +
+      `${av}<b>${p.name}</b><span class="persona-toggle" id="${id}_toggle">[+]</span>` +
+      `<button class="control-btn persona-del" onclick="deletePersona(${i}); event.stopPropagation();">Del</button>` +
+      `</div>` +
       `<div class="persona-desc hidden" id="${id}_desc">${p.description}</div>` +
       `</div>`;
   }).join('');
@@ -97,6 +100,24 @@ function togglePersona(id) {
     desc.classList.add('hidden');
     toggle.innerText = '[+]';
   }
+}
+
+function deletePersona(i) {
+  if (!confirm('Delete this persona?')) return;
+  appState.personas.splice(i, 1);
+  syncToStorage();
+  updatePersonasList();
+  setStatus('Deleted persona.');
+}
+
+function addPersona() {
+  const name = prompt('Persona name:');
+  if (!name) return;
+  const description = prompt('Description for ' + name + ':') || '';
+  appState.personas.push({name, description});
+  syncToStorage();
+  updatePersonasList();
+  setStatus('Added persona.');
 }
 
 function newProject() {
@@ -344,6 +365,7 @@ window.addEventListener('DOMContentLoaded', () => {
   $('#clearKeysBtn').onclick = clearKeys;
   $('#saveSettingsBtn').onclick = saveSettings;
   $('#clearSearchBtn').onclick = clearSearch;
+  $('#addPersonaBtn').onclick = addPersona;
   $('#sendBtn').onclick = runPanel;
   $('#importFile').addEventListener('change', importStateFile);
   $('#searchBox').addEventListener('input', showChatHistory);

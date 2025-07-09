@@ -53,6 +53,17 @@ html, body {
   margin-bottom: 0.4em;
   cursor: pointer;
 }
+.persona-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.persona-del {
+  background: #944;
+}
+.persona-del:hover {
+  background: #b55;
+}
 
 .persona-desc {
   margin-left: 1.4em;
