@@ -25,7 +25,8 @@ let appState = {
   activeApi: "openai",
   personas: defaultPersonas,
   userSettings: {temperature: 0.7, maxTokens: 1024},
-  projectHistory: []
+  projectHistory: [],
+  theme: 'dark'
 };
 
 function syncFromStorage() {
@@ -33,15 +34,18 @@ function syncFromStorage() {
     const saved = localStorage.getItem('aiStudioState');
     if (saved) appState = JSON.parse(saved);
   } catch {}
+  if (!appState.theme) appState.theme = 'dark';
   $('#openaiKey').value = appState.openaiKey || '';
   $('#groqKey').value = appState.groqKey || '';
   $('#openrouterKey').value = appState.openrouterKey || '';
   $('#temperature').value = appState.userSettings.temperature;
   $('#maxTokens').value = appState.userSettings.maxTokens;
   document.querySelectorAll('input[name="api"]').forEach(r => r.checked = r.value === appState.activeApi);
+  $('#themeToggle').checked = appState.theme === 'light';
   updateActiveApiDisplay();
   updatePersonasList();
   showChatHistory();
+  applyTheme();
 }
 
 const syncToStorage = () => localStorage.setItem('aiStudioState', JSON.stringify(appState));
@@ -51,6 +55,10 @@ const updateActiveApiDisplay = () => {
 };
 
 const setStatus = (msg) => { $('#statusBar').innerText = msg; };
+
+function applyTheme() {
+  document.body.classList.toggle('light', appState.theme === 'light');
+}
 
 function saveKeys() {
   appState.openaiKey = $('#openaiKey').value.trim();
@@ -257,6 +265,7 @@ async function runPanel() {
   const coop = $('#coopMode').checked;
   setStatus('Running agents...');
   $('#sendBtn').disabled = true;
+  $('#spinner').classList.remove('hidden');
   const responses = [];
   const prevRound = appState.projectHistory.length ? appState.projectHistory[appState.projectHistory.length - 1] : null;
   for (const persona of appState.personas) {
@@ -280,6 +289,7 @@ async function runPanel() {
   $('#promptInput').value = '';
   setStatus(`Last run completed at: ${new Date().toLocaleTimeString()}`);
   $('#sendBtn').disabled = false;
+  $('#spinner').classList.add('hidden');
 }
 
 async function callAgentAPI(sysPrompt, userPrompt) {
@@ -367,6 +377,11 @@ window.addEventListener('DOMContentLoaded', () => {
   $('#clearSearchBtn').onclick = clearSearch;
   $('#addPersonaBtn').onclick = addPersona;
   $('#sendBtn').onclick = runPanel;
+  $('#themeToggle').addEventListener('change', () => {
+    appState.theme = $('#themeToggle').checked ? 'light' : 'dark';
+    applyTheme();
+    syncToStorage();
+  });
   $('#importFile').addEventListener('change', importStateFile);
   $('#searchBox').addEventListener('input', showChatHistory);
   $('#promptInput').addEventListener('keydown', (e) => {
