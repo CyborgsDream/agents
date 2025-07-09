@@ -89,6 +89,7 @@ function updatePersonasList() {
     return `<div class="persona-card">` +
       `<div class="persona-header" onclick="togglePersona('${id}')">` +
       `${av}<b>${p.name}</b><span class="persona-toggle" id="${id}_toggle">[+]</span>` +
+      `<button class="control-btn persona-edit" onclick="editPersona(${i}); event.stopPropagation();">Edit</button>` +
       `<button class="control-btn persona-del" onclick="deletePersona(${i}); event.stopPropagation();">Del</button>` +
       `</div>` +
       `<div class="persona-desc hidden" id="${id}_desc">${p.description}</div>` +
@@ -118,6 +119,19 @@ function deletePersona(i) {
   setStatus('Deleted persona.');
 }
 
+function editPersona(i) {
+  const persona = appState.personas[i];
+  if (!persona) return;
+  const name = prompt('Edit name:', persona.name);
+  if (!name) return;
+  const description = prompt('Edit description for ' + name + ':', persona.description) || '';
+  persona.name = name;
+  persona.description = description;
+  syncToStorage();
+  updatePersonasList();
+  setStatus('Persona updated.');
+}
+
 function addPersona() {
   const name = prompt('Persona name:');
   if (!name) return;
@@ -133,6 +147,15 @@ function newProject() {
     appState.projectHistory = [];
     showChatHistory();
     setStatus('Started new project.');
+  }
+}
+
+function newTeam() {
+  if (confirm('Create a new team? This will remove all current personas.')) {
+    appState.personas = [];
+    updatePersonasList();
+    syncToStorage();
+    setStatus('New team created. Add personas to begin.');
   }
 }
 
@@ -295,6 +318,10 @@ async function runPanel() {
 async function callAgentAPI(sysPrompt, userPrompt) {
   const api = getActiveApi();
   const key = getActiveApiKey();
+  if (!key) {
+    setStatus('API key missing for ' + api.toUpperCase());
+    return '[API key missing]';
+  }
   let endpoint, headers = {}, model;
   const temp = appState.userSettings.temperature;
   const max_tokens = appState.userSettings.maxTokens;
@@ -326,6 +353,10 @@ async function callAgentAPI(sysPrompt, userPrompt) {
       headers,
       body: JSON.stringify(body)
     });
+    if (!resp.ok) {
+      setStatus('API error: ' + resp.status + ' ' + resp.statusText);
+      return `[API error: ${resp.status} ${resp.statusText}]`;
+    }
     const data = await resp.json();
     if (data.error) {
       setStatus('API error: ' + (data.error.message || JSON.stringify(data)));
@@ -369,6 +400,7 @@ window.addEventListener('DOMContentLoaded', () => {
   });
 
   $('#newProjectBtn').onclick = newProject;
+  $('#newTeamBtn').onclick = newTeam;
   $('#exportBtn').onclick = exportState;
   $('#importBtn').onclick = importStateFilePrompt;
   $('#saveKeysBtn').onclick = saveKeys;

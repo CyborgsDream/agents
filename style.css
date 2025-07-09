@@ -122,6 +122,12 @@ html, body {
 .persona-del:hover {
   background: var(--persona-del-hover-bg);
 }
+.persona-edit {
+  background: var(--control-btn-bg);
+}
+.persona-edit:hover {
+  background: var(--control-btn-hover-bg);
+}
 
 .persona-desc {
   margin-left: 1.4em;
