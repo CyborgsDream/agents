@@ -11,11 +11,11 @@ const avatarMap = {
 };
 
 const defaultPersonas = [
-  {name: "Retrocore Virtuonaut", description: "Legendary Retro Game Designer & Programmer."},
-  {name: "Pixelia Chromatica", description: "Pixel Graphics Virtuoso & Visual Artist."},
-  {name: "Dr. Aurelius Verne", description: "World-Renowned Historian & Scriptwriter."},
-  {name: "Maxwell Tagora", description: "HTML5 Game Architect & Programmer."},
-  {name: "Sophie Loopmaker", description: "Gameplay Visionary & Level Design Genius."}
+  {name: "Retrocore Virtuonaut", description: "Legendary Retro Game Designer & Programmer.", api: "openai", model: "gpt-4o"},
+  {name: "Pixelia Chromatica", description: "Pixel Graphics Virtuoso & Visual Artist.", api: "openai", model: "gpt-4o"},
+  {name: "Dr. Aurelius Verne", description: "World-Renowned Historian & Scriptwriter.", api: "openai", model: "gpt-4o"},
+  {name: "Maxwell Tagora", description: "HTML5 Game Architect & Programmer.", api: "openai", model: "gpt-4o"},
+  {name: "Sophie Loopmaker", description: "Gameplay Visionary & Level Design Genius.", api: "openai", model: "gpt-4o"}
 ];
 
 let appState = {
@@ -34,6 +34,10 @@ function syncFromStorage() {
     const saved = localStorage.getItem('aiStudioState');
     if (saved) appState = JSON.parse(saved);
   } catch {}
+  (appState.personas || []).forEach(p => {
+    if (!p.api) p.api = appState.activeApi || 'openai';
+    if (p.model === undefined) p.model = '';
+  });
   if (!appState.theme) appState.theme = 'dark';
   $('#openaiKey').value = appState.openaiKey || '';
   $('#groqKey').value = appState.groqKey || '';
@@ -86,9 +90,10 @@ function updatePersonasList() {
   const html = appState.personas.map((p, i) => {
     const id = `persona${i}`;
     const av = avatarMap[p.name] ? `<img src="${avatarMap[p.name]}" class="agent-avatar">` : '';
+    const meta = `<span class="persona-meta">${(p.api || appState.activeApi).toUpperCase()}${p.model ? ":" + p.model : ""}</span>`;
     return `<div class="persona-card">` +
       `<div class="persona-header" onclick="togglePersona('${id}')">` +
-      `${av}<b>${p.name}</b><span class="persona-toggle" id="${id}_toggle">[+]</span>` +
+      `${av}<b>${p.name}</b>${meta}<span class="persona-toggle" id="${id}_toggle">[+]</span>` +
       `<button class="control-btn persona-edit" onclick="editPersona(${i}); event.stopPropagation();">Edit</button>` +
       `<button class="control-btn persona-del" onclick="deletePersona(${i}); event.stopPropagation();">Del</button>` +
       `</div>` +
@@ -125,8 +130,12 @@ function editPersona(i) {
   const name = prompt('Edit name:', persona.name);
   if (!name) return;
   const description = prompt('Edit description for ' + name + ':', persona.description) || '';
+  const api = prompt('API for ' + name + ' (openai/groq/openrouter):', persona.api || appState.activeApi) || persona.api || appState.activeApi;
+  const model = prompt('Model for ' + name + ':', persona.model || '') || persona.model || '';
   persona.name = name;
   persona.description = description;
+  persona.api = api;
+  persona.model = model;
   syncToStorage();
   updatePersonasList();
   setStatus('Persona updated.');
@@ -136,7 +145,9 @@ function addPersona() {
   const name = prompt('Persona name:');
   if (!name) return;
   const description = prompt('Description for ' + name + ':') || '';
-  appState.personas.push({name, description});
+  const api = prompt('API for ' + name + ' (openai/groq/openrouter):', appState.activeApi) || appState.activeApi;
+  const model = prompt('Model for ' + name + ':') || '';
+  appState.personas.push({name, description, api, model});
   syncToStorage();
   updatePersonasList();
   setStatus('Added persona.');
@@ -301,7 +312,7 @@ async function runPanel() {
     } else {
       context = prompt;
     }
-    const reply = await callAgentAPI(sys, context);
+    const reply = await callAgentAPI(persona.api || appState.activeApi, sys, context, persona.model);
     responses.push({persona: persona.name, text: reply});
     showChatHistory();
     setStatus(`Completed: ${persona.name}`);
@@ -315,28 +326,27 @@ async function runPanel() {
   $('#spinner').classList.add('hidden');
 }
 
-async function callAgentAPI(sysPrompt, userPrompt) {
-  const api = getActiveApi();
-  const key = getActiveApiKey();
+async function callAgentAPI(api, sysPrompt, userPrompt, modelOverride) {
+  const key = getApiKey(api);
   if (!key) {
     setStatus('API key missing for ' + api.toUpperCase());
     return '[API key missing]';
   }
-  let endpoint, headers = {}, model;
+  let endpoint, headers = {}, model = modelOverride;
   const temp = appState.userSettings.temperature;
   const max_tokens = appState.userSettings.maxTokens;
   if (api === 'openai') {
     endpoint = 'https://api.openai.com/v1/chat/completions';
     headers = {Authorization: `Bearer ${key}`, 'Content-Type': 'application/json'};
-    model = 'gpt-4o';
+    model = model || 'gpt-4o';
   } else if (api === 'groq') {
     endpoint = 'https://api.groq.com/openai/v1/chat/completions';
     headers = {Authorization: `Bearer ${key}`, 'Content-Type': 'application/json'};
-    model = 'meta-llama/llama-4-scout-17b-16e-instruct';
+    model = model || 'meta-llama/llama-4-scout-17b-16e-instruct';
   } else if (api === 'openrouter') {
     endpoint = 'https://openrouter.ai/api/v1/chat/completions';
     headers = {Authorization: `Bearer ${key}`, 'Content-Type': 'application/json'};
-    model = 'mistral-7b';
+    model = model || 'mistral-7b';
   }
   const body = {
     messages: [
@@ -369,8 +379,8 @@ async function callAgentAPI(sysPrompt, userPrompt) {
   }
 }
 
-function getActiveApiKey() {
-  switch (appState.activeApi) {
+function getApiKey(api) {
+  switch (api) {
     case 'openai':
       return appState.openaiKey;
     case 'groq':

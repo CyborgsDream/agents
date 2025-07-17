@@ -116,6 +116,11 @@ html, body {
   align-items: center;
   justify-content: space-between;
 }
+.persona-meta {
+  font-size: 0.8em;
+  color: var(--timestamp-color);
+  margin-left: 0.4em;
+}
 .persona-del {
   background: var(--persona-del-bg);
 }
