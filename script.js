@@ -326,6 +326,8 @@ async function runPanel() {
   $('#spinner').classList.add('hidden');
 }
 
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
 async function callAgentAPI(api, sysPrompt, userPrompt, modelOverride) {
   const key = getApiKey(api);
   if (!key) {
@@ -357,26 +359,46 @@ async function callAgentAPI(api, sysPrompt, userPrompt, modelOverride) {
     max_tokens: max_tokens,
     model
   };
-  try {
-    const resp = await fetch(endpoint, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(body)
-    });
-    if (!resp.ok) {
-      setStatus('API error: ' + resp.status + ' ' + resp.statusText);
-      return `[API error: ${resp.status} ${resp.statusText}]`;
+  const maxAttempts = 3;
+  let attempt = 0;
+  while (attempt < maxAttempts) {
+    try {
+      const resp = await fetch(endpoint, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(body)
+      });
+      if (resp.status === 429) {
+        attempt++;
+        const retryAfter = Number(resp.headers.get('retry-after')) || attempt;
+        const waitMs = Math.min(1000 * Math.pow(2, attempt - 1) * retryAfter, 10000);
+        setStatus(`API rate limited (${api.toUpperCase()}). Retrying in ${Math.round(waitMs / 1000)}s...`);
+        await sleep(waitMs);
+        continue;
+      }
+      if (!resp.ok) {
+        setStatus('API error: ' + resp.status + ' ' + resp.statusText);
+        return `[API error: ${resp.status} ${resp.statusText}]`;
+      }
+      const data = await resp.json();
+      if (data.error) {
+        setStatus('API error: ' + (data.error.message || JSON.stringify(data)));
+        return `[API error: ${data.error.message || JSON.stringify(data)}]`;
+      }
+      return data.choices?.[0]?.message?.content || JSON.stringify(data);
+    } catch (e) {
+      attempt++;
+      if (attempt >= maxAttempts) {
+        setStatus('API error: ' + e);
+        return `[API error: ${e}]`;
+      }
+      const waitMs = Math.min(1000 * Math.pow(2, attempt - 1), 10000);
+      setStatus(`Connection issue (${api.toUpperCase()}). Retrying in ${Math.round(waitMs / 1000)}s...`);
+      await sleep(waitMs);
     }
-    const data = await resp.json();
-    if (data.error) {
-      setStatus('API error: ' + (data.error.message || JSON.stringify(data)));
-      return `[API error: ${data.error.message || JSON.stringify(data)}]`;
-    }
-    return data.choices?.[0]?.message?.content || JSON.stringify(data);
-  } catch (e) {
-    setStatus('API error: ' + e);
-    return `[API error: ${e}]`;
   }
+  setStatus('API error: exceeded retry attempts.');
+  return '[API error: exceeded retry attempts]';
 }
 
 function getApiKey(api) {
